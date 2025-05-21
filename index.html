@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notliáloc - Sistema de Notificaciones Inteligentes</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            background: #1a202c;
+            position: relative;
+        }
+
+        /* Fondo con gradiente inspirado en la plataforma */
+        .main-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 25%, #4a5568 50%, #2b6cb0 75%, #3182ce 100%);
+        }
+
+        /* Lluvia de campanitas - notificaciones */
+        .notifications-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .notification-bell {
+            position: absolute;
+            color: #3182ce;
+            font-size: 1.2rem;
+            opacity: 0;
+            animation: bellFall linear infinite;
+            text-shadow: 0 0 10px rgba(49, 130, 206, 0.5);
+        }
+
+        .notification-bell.mobile {
+            font-size: 1rem;
+        }
+
+        .notification-bell::before {
+            content: '🔔';
+            display: block;
+            animation: bellRing 0.5s ease-in-out infinite alternate;
+        }
+
+        .notification-bell.variant-1::before { content: '🔔'; }
+        .notification-bell.variant-2::before { content: '📱'; }
+        .notification-bell.variant-3::before { content: '💬'; }
+        .notification-bell.variant-4::before { content: '📢'; }
+        .notification-bell.variant-5::before { content: '⚡'; }
+
+        @keyframes bellFall {
+            0% {
+                transform: translateY(-100px) translateX(0px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) translateX(var(--drift)) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes bellRing {
+            0% { transform: rotate(-10deg) scale(1); }
+            100% { transform: rotate(10deg) scale(1.1); }
+        }
+
+        /* Partículas adicionales sutiles */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(49, 130, 206, 0.1);
+            border-radius: 50%;
+            animation: float 12s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.2;
+            }
+            50% { 
+                transform: translateY(-15px) translateX(8px);
+                opacity: 0.6;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header optimizado para móvil */
+        .header {
+            text-align: center;
+            padding: 40px 0 30px;
+            position: relative;
+        }
+
+        .logo-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #3182ce;
+            text-shadow: 0 0 20px rgba(49, 130, 206, 0.4);
+            position: relative;
+            z-index: 2;
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes logoGlow {
+            0% { 
+                color: #3182ce;
+                text-shadow: 0 0 20px rgba(49, 130, 206, 0.4);
+            }
+            100% { 
+                color: #4299e1;
+                text-shadow: 0 0 30px rgba(66, 153, 225, 0.6);
+            }
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #a0aec0;
+            position: relative;
+            z-index: 2;
+            animation: fadeInUp 1s ease-out 0.3s both;
+            margin-bottom: 10px;
+        }
+
+        .company-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #3182ce, #2b6cb0);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(49, 130, 206, 0.3);
+        }
+
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3182ce, #4299e1);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        /* Tríptico optimizado para móvil */
+        .triptico {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .panel {
+            background: linear-gradient(145deg, #2d3748, #4a5568);
+            border-radius: 16px;
+            padding: 25px 20px;
+            box-shadow: 
+                0 10px 25px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+            transform: translateY(30px);
+            opacity: 0;
+            animation: slideInUp 0.8s ease-out forwards;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(49, 130, 206, 0.2);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(49, 130, 206, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .panel:hover::before {
+            left: 100%;
+        }
+
+        .panel:nth-child(1) { animation-delay: 0.2s; }
+        .panel:nth-child(2) { animation-delay: 0.4s; }
+        .panel:nth-child(3) { animation-delay: 0.6s; }
+
+        .panel:active {
+            transform: translateY(-5px) scale(0.98);
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .panel-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #3182ce, #2b6cb0);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            position: relative;
+            box-shadow: 0 8px 20px rgba(49, 130, 206, 0.3);
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .panel h2 {
+            color: #e2e8f0;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .panel h2::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(135deg, #3182ce, #4299e1);
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+
+        .panel p {
+            color: #a0aec0;
+            line-height: 1.7;
+            margin-bottom: 15px;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        .panel strong {
+            color: #4299e1;
+            font-weight: 600;
+        }
+
+        .panel em {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        /* Sección de beneficios optimizada para móvil */
+        .benefits-section {
+            background: linear-gradient(145deg, #2d3748, #4a5568);
+            border-radius: 20px;
+            padding: 30px 20px;
+            margin: 40px 0;
+            box-shadow: 
+                0 15px 35px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.1);
+            animation: fadeIn 1s ease-out 1s both;
+            position: relative;
+            border: 1px solid rgba(49, 130, 206, 0.2);
+        }
+
+        .benefits-title {
+            text-align: center;
+            color: #e2e8f0;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .benefits-subtitle {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .benefit-card {
+            background: linear-gradient(145deg, #1a202c, #2d3748);
+            padding: 25px 20px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(49, 130, 206, 0.2);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .benefit-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3182ce, #4299e1);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .benefit-card:hover::before,
+        .benefit-card:active::before {
+            transform: scaleX(1);
+        }
+
+        .benefit-card:active {
+            transform: translateY(-3px) scale(0.98);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.3);
+        }
+
+        .benefit-icon-container {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #3182ce, #2b6cb0);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 15px rgba(49, 130, 206, 0.3);
+        }
+
+        .benefit-card:hover .benefit-icon-container {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .benefit-icon {
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .benefit-card h3 {
+            color: #e2e8f0;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .benefit-card p {
+            color: #a0aec0;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* Footer optimizado */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(145deg, #1a202c, #2d3748);
+            border-radius: 20px;
+            margin-top: 40px;
+            position: relative;
+            border: 1px solid rgba(49, 130, 206, 0.2);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .footer h3 {
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .footer p {
+            color: #a0aec0;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #3182ce, #2b6cb0);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(49, 130, 206, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .cta-button:hover::before,
+        .cta-button:active::before {
+            left: 100%;
+        }
+
+        .cta-button:active {
+            transform: translateY(-2px) scale(0.98);
+            box-shadow: 0 12px 25px rgba(49, 130, 206, 0.4);
+        }
+
+        /* Animaciones básicas */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Media queries para diferentes tamaños de móvil */
+        @media (min-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .logo {
+                font-size: 3.2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .panel {
+                padding: 30px 25px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .triptico {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 25px;
+            }
+            
+            .benefits-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 25px;
+            }
+            
+            .logo {
+                font-size: 3.8rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 30px;
+            }
+            
+            .triptico {
+                gap: 30px;
+                margin: 60px 0;
+            }
+            
+            .benefits-grid {
+                gap: 30px;
+            }
+            
+            .panel:hover {
+                transform: translateY(-8px) scale(1.02);
+                box-shadow: 
+                    0 20px 40px rgba(0,0,0,0.4),
+                    0 0 20px rgba(49, 130, 206, 0.2);
+            }
+            
+            .benefit-card:hover {
+                transform: translateY(-5px) scale(1.02);
+            }
+        }
+
+        /* Optimizaciones de rendimiento para móvil */
+        @media (max-width: 767px) {
+            .panel-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            .benefit-icon-container {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .benefit-icon {
+                font-size: 1.5rem;
+            }
+            
+            /* Reducir animaciones en móviles para mejor rendimiento */
+            .panel::before,
+            .benefit-card::before {
+                display: none;
+            }
+            
+            .particle {
+                animation-duration: 12s;
+            }
+        }
+
+        /* Estados de carga */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* Accesibilidad */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Modo alto contraste */
+        @media (prefers-contrast: high) {
+            .panel, .benefit-card, .benefits-section, .footer {
+                border: 2px solid #4299e1;
+            }
+            
+            .panel p, .benefit-card p {
+                color: #e2e8f0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicador de scroll -->
+    <div class="scroll-indicator" id="scrollIndicator"></div>
+
+    <!-- Fondo principal -->
+    <div class="main-bg"></div>
+    
+    <!-- Lluvia de notificaciones -->
+    <div class="notifications-rain" id="notificationsRain"></div>
+    
+    <!-- Partículas optimizadas para móvil -->
+    <div class="particles-container" id="particles"></div>
+    
+    <div class="container">
+        <!-- Header optimizado -->
+        <header class="header">
+            <div class="logo-container">
+                <h1 class="logo">Notliáloc</h1>
+            </div>
+            <p class="subtitle">Sistema de Notificaciones Inteligentes</p>
+            <div class="company-badge">
+                <i class="fas fa-bell"></i> Solución Digital Profesional
+            </div>
+        </header>
+
+        <!-- Tríptico principal -->
+        <section class="triptico">
+            <!-- Panel 1: ¿Qué es? -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                </div>
+                <h2>¿Qué es Notliáloc?</h2>
+                <p>Notliáloc es un <strong>sistema revolucionario de notificaciones</strong> que establece la comunicación entre establecimientos y sus usuarios, sin necesidad de compartir datos personales como números de teléfono o correos electrónicos.</p>
+                <p><em>Una solución digital que protege tu privacidad mientras te mantiene conectado.</em></p>
+            </div>
+
+            <!-- Panel 2: ¿Qué hace? -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                </div>
+                <h2>¿Qué hace?</h2>
+                <p>A través de una <strong>plataforma web</strong> para establecimientos y una <strong>aplicación móvil</strong> para usuarios, Notliáloc permite dar seguimiento a pedidos mediante códigos QR.</p>
+                <p>El cliente <strong>escanea el código</strong> y recibe notificaciones en tiempo real sobre el estado de su pedido. La información se guarda en un <strong>historial completo</strong>.</p>
+            </div>
+
+            <!-- Panel 3: ¿Para quién es? -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <h2>¿Para quién es?</h2>
+                <p><strong>Plataforma Web:</strong> Para establecimientos que buscan sustituir dispositivos físicos y papel por una solución digital eficiente.</p>
+                <p><strong>App Móvil:</strong> Para usuarios que desean acceso en tiempo real a la información de sus pedidos con total privacidad.</p>
+            </div>
+        </section>
+
+        <!-- Sección de beneficios -->
+        <section class="benefits-section">
+            <h2 class="benefits-title">Beneficios y Ventajas</h2>
+            <p class="benefits-subtitle">Descubre cómo Notliáloc transforma la experiencia</p>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon-container">
+                        <i class="fas fa-store benefit-icon"></i>
+                    </div>
+                    <h3>Para Negocios</h3>
+                    <p><strong>Mejora la atención al cliente</strong>, optimiza la gestión de pedidos y <strong>reduce costos operativos</strong> eliminando dispositivos físicos y papel.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon-container">
+                        <i class="fas fa-user-check benefit-icon"></i>
+                    </div>
+                    <h3>Para Usuarios</h3>
+                    <p>Experiencia <strong>práctica y eficiente</strong> con notificaciones en tiempo real y <strong>mayor privacidad</strong>, evitando esperas y confusiones.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon-container">
+                        <i class="fas fa-leaf benefit-icon"></i>
+                    </div>
+                    <h3>Medio Ambiente</h3>
+                    <p><strong>Reduce basura electrónica</strong> y el uso de papel con una <strong>solución digital sustentable</strong> para un futuro más verde.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <h3>¡Revoluciona tu negocio con Notliáloc!</h3>
+            <p>La solución inteligente para la gestión de pedidos del futuro</p>
+            <a href="#" class="cta-button">
+                <i class="fas fa-rocket"></i>
+                ¡Comienza Ahora!
+            </a>
+        </footer>
+    </div>
+
+    <script>
+        // Configuración optimizada para móviles
+        const isMobile = window.innerWidth <= 768;
+        const isLowPowerDevice = navigator.hardwareConcurrency <= 4;
+
+        // Crear lluvia de campanitas/notificaciones
+        function createNotificationRain() {
+            const rainContainer = document.getElementById('notificationsRain');
+            const bellVariants = ['variant-1', 'variant-2', 'variant-3', 'variant-4', 'variant-5'];
+            const numberOfBells = isMobile ? 6 : 12; // Menos en móvil
+
+            function createBell() {
+                const bell = document.createElement('div');
+                bell.className = `notification-bell ${isMobile ? 'mobile' : ''} ${bellVariants[Math.floor(Math.random() * bellVariants.length)]}`;
+                
+                // Posición horizontal aleatoria
+                bell.style.left = Math.random() * 100 + '%';
+                
+                // Velocidad aleatoria de caída
+                const fallDuration = isMobile ? Math.random() * 4 + 6 : Math.random() * 3 + 4;
+                bell.style.animationDuration = fallDuration + 's';
+                
+                // Deriva horizontal aleatoria
+                const drift = (Math.random() - 0.5) * 100;
+                bell.style.setProperty('--drift', drift + 'px');
+                
+                // Retraso aleatorio
+                bell.style.animationDelay = Math.random() * 2 + 's';
+                
+                rainContainer.appendChild(bell);
+                
+                // Remover después de la animación
+                setTimeout(() => {
+                    if (bell.parentNode) {
+                        bell.remove();
+                    }
+                }, (fallDuration + 2) * 1000);
+            }
+
+            // Crear campanitas iniciales
+            for (let i = 0; i < numberOfBells; i++) {
+                setTimeout(() => createBell(), i * (isMobile ? 800 : 500));
+            }
+
+            // Continuar creando campanitas
+            const interval = isMobile ? 1200 : 800;
+            setInterval(() => {
+                if (rainContainer.children.length < numberOfBells) {
+                    createBell();
+                }
+            }, interval);
+        }
+
+        // Crear partículas optimizadas para móvil
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const numberOfParticles = isMobile ? 5 : 12; // Reducido para dar protagonismo a las campanitas
+
+            for (let i = 0; i < numberOfParticles; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 3 + 1; // Partículas más pequeñas
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                const duration = isMobile ? Math.random() * 10 + 15 : Math.random() * 8 + 12;
+                particle.style.animationDuration = duration + 's';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Indicador de scroll optimizado
+        function updateScrollIndicator() {
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrollPercent = (scrollTop / scrollHeight) * 100;
+            
+            document.getElementById('scrollIndicator').style.width = scrollPercent + '%';
+        }
+
+        // Intersection Observer para animaciones
+        function setupScrollAnimations() {
+            const observerOptions = {
+                threshold: isMobile ? 0.05 : 0.1, // Umbral más bajo en móvil
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                        entry.target.classList.add('animate-in');
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.panel, .benefit-card, .benefits-section').forEach(element => {
+                observer.observe(element);
+            });
+        }
+
+        // Touch interactions para móvil
+        function setupTouchInteractions() {
+            if (!isMobile) return;
+
+            const touchElements = document.querySelectorAll('.panel, .benefit-card, .cta-button');
+            
+            touchElements.forEach(element => {
+                element.addEventListener('touchstart', function(e) {
+                    this.style.transform = 'scale(0.98)';
+                    this.style.transition = 'transform 0.1s ease';
+                }, { passive: true });
+                
+                element.addEventListener('touchend', function(e) {
+                    this.style.transform = '';
+                    this.style.transition = 'transform 0.3s ease';
+                }, { passive: true });
+                
+                element.addEventListener('touchcancel', function(e) {
+                    this.style.transform = '';
+                    this.style.transition = 'transform 0.3s ease';
+                }, { passive: true });
+            });
+        }
+
+        // Efecto typing optimizado
+        function typeWriter() {
+            const logo = document.querySelector('.logo');
+            const text = 'Notliáloc';
+            logo.textContent = '';
+            
+            let i = 0;
+            const speed = isMobile ? 120 : 100; // Más lento en móvil para mejor UX
+            const timer = setInterval(() => {
+                logo.textContent += text[i];
+                i++;
+                if (i >= text.length) {
+                    clearInterval(timer);
+                }
+            }, speed);
+        }
+
+        // Lazy loading para mejor rendimiento
+        function setupLazyLoading() {
+            const lazyElements = document.querySelectorAll('[data-lazy]');
+            
+            if ('IntersectionObserver' in window) {
+                const lazyObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const element = entry.target;
+                            element.classList.add('loaded');
+                            lazyObserver.unobserve(element);
+                        }
+                    });
+                });
+                
+                lazyElements.forEach(element => lazyObserver.observe(element));
+            }
+        }
+
+        // Throttle function para optimizar eventos
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+
+        // Inicialización principal
+        document.addEventListener('DOMContentLoaded', () => {
+            // Crear efectos visuales
+            createNotificationRain(); // ¡Nueva lluvia de campanitas!
+            createParticles();
+            setupScrollAnimations();
+            setupTouchInteractions();
+            setupLazyLoading();
+            
+            // Animación de entrada del título
+            setTimeout(typeWriter, 500);
+            
+            // Optimizar scroll events
+            const throttledScrollUpdate = throttle(updateScrollIndicator, isMobile ? 16 : 8);
+            window.addEventListener('scroll', throttledScrollUpdate, { passive: true });
+            
+            // Limpiar recursos en dispositivos de bajo rendimiento
+            if (isLowPowerDevice) {
+                document.querySelectorAll('.particle').forEach((particle, index) => {
+                    if (index > 3) particle.remove();
+                });
+            }
+        });
+
+        // Optimización de memoria
+        window.addEventListener('beforeunload', () => {
+            document.getElementById('particles').innerHTML = '';
+            document.getElementById('notificationsRain').innerHTML = '';
+        });
+
+        // Responsive updates
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window.innerWidth <= 768 && !isMobile) {
+                    location.reload(); // Recargar para aplicar optimizaciones móvil
+                }
+            }, 250);
+        });
+
+        // Performance monitoring
+        if ('performance' in window) {
+            window.addEventListener('load', () => {
+                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                if (loadTime > 3000) { // Si tarda más de 3 segundos
+                    // Reducir efectos para mejorar rendimiento
+                    document.querySelectorAll('.particle').forEach((particle, index) => {
+                        if (index > 3) particle.remove();
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
